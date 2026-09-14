@@ -1,0 +1,14 @@
+model {
+    work-service = node-service 'Work Service' {
+        description '''
+          Owns requests and task execution: persists work,
+          exposes assignment reads, accepts progress updates and
+          administrative overrides, and publishes lifecycle events.
+        '''
+    }
+
+    work-service .writes-to application-db 'requests, tasks, status, attachment refs'
+    work-service .reads-from application-db 'assignments, progress, and exception queues'
+    work-service .produces event-bus.request-submitted-topic
+    work-service .produces event-bus.task-status-updated-topic
+}

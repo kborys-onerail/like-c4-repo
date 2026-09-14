@@ -1,0 +1,16 @@
+model {
+    processing-service = dotnet-service 'Processing Service' {
+        description '''
+          Asynchronous worker that enriches requests, selects an
+          eligible field user, and maintains read projections.
+          It also mirrors account data to a legacy channel.
+        '''
+    }
+
+    processing-service .consumes event-bus.user-created-topic
+    processing-service .consumes event-bus.user-updated-topic
+    processing-service .consumes event-bus.request-submitted-topic
+    processing-service .consumes event-bus.task-status-updated-topic
+    processing-service .writes-to application-db 'profiles, request metadata, assignments'
+    processing-service .produces legacy-event-bus.account-profile-topic
+}

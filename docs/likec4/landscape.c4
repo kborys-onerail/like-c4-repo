@@ -1,0 +1,65 @@
+// Actors, shared data plane, and client relationships
+model {
+    customer = actor 'Customer' {
+        description 'User who submits requests and follows their progress.'
+        style {
+            icon bootstrap:person
+        }
+    }
+
+    field-user = actor 'Field User' {
+        description 'User who accepts assigned tasks and reports progress.'
+        style {
+            icon bootstrap:person-badge
+        }
+    }
+
+    administrator = actor 'Administrator' {
+        description '''
+          Internal user who manages accounts, assignments,
+          and operational exceptions.
+        '''
+        style {
+            icon bootstrap:person-gear
+        }
+    }
+
+    customer .uses web-app 'submits and tracks requests'
+    administrator .uses web-app 'manages accounts and exceptions'
+    field-user .uses task-app 'works assigned tasks'
+
+    event-bus = kafka 'Event Bus' {
+        description 'Shared asynchronous event backbone on a managed Kafka cluster'
+
+        user-created-topic = kafka-topic 'user-created' {
+            description 'Auth Service publishes when an account is created'
+        }
+        user-updated-topic = kafka-topic 'user-updated' {
+            description 'Auth Service publishes profile, role, or credential changes'
+        }
+        request-submitted-topic = kafka-topic 'request-submitted' {
+            description 'Work Service publishes a newly submitted request'
+        }
+        task-status-updated-topic = kafka-topic 'task-status-updated' {
+            description 'Work Service publishes task progress and exceptions'
+        }
+    }
+
+    legacy-event-bus = event-hub 'Legacy Event Bus' {
+        #deprecated
+        description 'Azure Event Hubs channel kept until the legacy consumer migrates to Kafka'
+
+        account-profile-topic = event-hub-topic 'account-profile-enriched' {
+            description 'Processing Service mirrors enriched account profiles here'
+        }
+    }
+
+    application-db = database 'Application Database' {
+        technology 'MySQL'
+        description 'System of record for users, requests, tasks, and assignments'
+        style {
+            shape storage
+            icon tech:mysql
+        }
+    }
+}

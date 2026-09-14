@@ -1,0 +1,227 @@
+// Generic reference architecture, grouped by audience
+views {
+
+    view index {
+        title 'Landscape'
+        description 'Clients, edge, domain services, and the shared data plane.'
+        include
+            customer,
+            administrator,
+            field-user,
+            web-app,
+            task-app,
+            api-gateway,
+            auth-service,
+            work-service,
+            processing-service,
+            event-bus,
+            legacy-event-bus,
+            application-db
+        style legacy-event-bus {
+            opacity 30%
+        }
+        autoLayout LeftRight
+    }
+}
+
+views 'Customer' {
+
+    view customer-path {
+        title 'Request path'
+        description 'How a request moves from the web application to asynchronous processing.'
+        include
+            customer,
+            web-app,
+            api-gateway,
+            auth-service,
+            work-service,
+            processing-service,
+            event-bus.request-submitted-topic,
+            application-db
+        autoLayout LeftRight
+    }
+
+    dynamic view submit-request {
+        title 'Flows / Submits a request'
+        description 'Synchronous submission followed by asynchronous task assignment.'
+        variant sequence
+
+        customer -> web-app 'sign in'
+        web-app -> api-gateway 'POST /auth/login'
+        api-gateway -> auth-service 'verify credentials'
+        auth-service -> application-db 'load user + roles'
+        auth-service <- application-db 'user record'
+        api-gateway <- auth-service 'access token'
+        web-app <- api-gateway 'access token'
+        customer <- web-app 'signed in'
+
+        customer -> web-app 'enter request details'
+        web-app -> api-gateway 'POST /requests'
+        api-gateway -> auth-service 'validate token (customer role)'
+        api-gateway <- auth-service 'claims ok'
+        api-gateway -> work-service 'create request command'
+        work-service -> application-db 'insert request + tasks (unassigned)'
+        work-service -> event-bus.request-submitted-topic 'RequestSubmitted'
+        api-gateway <- work-service '201 + request id'
+        web-app <- api-gateway '201 + request id'
+        customer <- web-app 'request accepted'
+
+        // async, after the customer already got a response
+        event-bus.request-submitted-topic -> processing-service 'RequestSubmitted'
+        processing-service -> application-db 'enrich request and write assignment'
+    }
+}
+
+views 'Field User' {
+
+    view field-user-path {
+        title 'Task execution path'
+        description 'How a field user retrieves assigned work and reports progress.'
+        include
+            field-user,
+            task-app,
+            api-gateway,
+            auth-service,
+            work-service,
+            processing-service,
+            event-bus.task-status-updated-topic,
+            application-db
+        autoLayout LeftRight
+    }
+
+    dynamic view complete-task {
+        title 'Flows / Completes a task'
+        description 'A field user retrieves an assignment, performs it, and attaches evidence.'
+        variant sequence
+
+        field-user -> task-app 'sign in'
+        task-app -> api-gateway 'POST /auth/login'
+        api-gateway -> auth-service 'verify credentials'
+        api-gateway <- auth-service 'access token'
+        task-app <- api-gateway 'access token'
+        field-user <- task-app 'signed in'
+
+        field-user -> task-app 'open work queue'
+        task-app -> api-gateway 'GET /assignments'
+        api-gateway -> auth-service 'validate token (field-user role)'
+        api-gateway <- auth-service 'claims ok'
+        api-gateway -> work-service 'list assigned tasks'
+        work-service -> application-db 'read assignments written by Processing Service'
+        work-service <- application-db 'tasks + details'
+        api-gateway <- work-service 'assigned tasks'
+        task-app <- api-gateway 'assigned tasks'
+        field-user <- task-app 'show task details'
+
+        field-user -> task-app 'complete task + attach evidence'
+        task-app -> api-gateway 'PATCH task status + attachment'
+        api-gateway -> auth-service 'validate token (field-user role)'
+        api-gateway <- auth-service 'claims ok'
+        api-gateway -> work-service 'status command'
+        work-service -> application-db 'update status, store attachment ref'
+        work-service -> event-bus.task-status-updated-topic 'TaskStatusUpdated'
+        api-gateway <- work-service '204 accepted'
+        task-app <- api-gateway '204 accepted'
+        field-user <- task-app 'task complete'
+
+        // async, after the field user already got a response
+        event-bus.task-status-updated-topic -> processing-service 'TaskStatusUpdated'
+        processing-service -> application-db 'update progress projection for the web application'
+    }
+}
+
+views 'Administration' {
+
+    view administration-path {
+        title 'Administration path'
+        description 'How administrators provision accounts and resolve exceptions.'
+        include
+            administrator,
+            web-app,
+            api-gateway,
+            auth-service,
+            work-service,
+            processing-service,
+            event-bus.user-created-topic,
+            event-bus.user-updated-topic,
+            event-bus.task-status-updated-topic,
+            application-db
+        autoLayout LeftRight
+    }
+
+    dynamic view create-account {
+        title 'Flows / Creates an account'
+        description 'An administrator provisions a customer or field-user account.'
+        variant sequence
+
+        administrator -> web-app 'create account'
+        web-app -> api-gateway 'POST /users'
+        api-gateway -> auth-service 'validate token (administrator role)'
+        api-gateway <- auth-service 'claims ok'
+        api-gateway -> auth-service 'create account command'
+        auth-service -> application-db 'insert user + role + credentials'
+        auth-service -> event-bus.user-created-topic 'UserCreated'
+        api-gateway <- auth-service '201 + user id'
+        web-app <- api-gateway '201 + user id'
+        administrator <- web-app 'account ready'
+
+        // async, after the operator already got a response
+        event-bus.user-created-topic -> processing-service 'UserCreated'
+        processing-service -> application-db 'enrich profile and eligibility data'
+        processing-service -> legacy-event-bus.account-profile-topic 'AccountProfileEnriched'
+    }
+
+    dynamic view handle-exception {
+        title 'Flows / Resolves an exception'
+        description 'An administrator reassigns a task that cannot proceed.'
+        variant sequence
+
+        administrator -> web-app 'sign in'
+        web-app -> api-gateway 'POST /auth/login'
+        api-gateway -> auth-service 'verify credentials'
+        api-gateway <- auth-service 'access token'
+        web-app <- api-gateway 'access token'
+        administrator <- web-app 'signed in'
+
+        administrator -> web-app 'open exception queue'
+        web-app -> api-gateway 'GET /exceptions'
+        api-gateway -> auth-service 'validate token (administrator role)'
+        api-gateway <- auth-service 'claims ok'
+        api-gateway -> work-service 'list blocked or aging tasks'
+        work-service -> application-db 'read progress + current assignment'
+        work-service <- application-db 'blocked tasks'
+        api-gateway <- work-service 'exception list'
+        web-app <- api-gateway 'exception list'
+        administrator <- web-app 'exception queue'
+
+        administrator -> web-app 'reassign field user'
+        web-app -> api-gateway 'PATCH /assignments/{id}'
+        api-gateway -> auth-service 'validate token (administrator role)'
+        api-gateway <- auth-service 'claims ok'
+        api-gateway -> work-service 'override assignment'
+        work-service -> application-db 'write new assignee on the task'
+        work-service -> event-bus.task-status-updated-topic 'TaskReassigned'
+        api-gateway <- work-service '200 reassigned'
+        web-app <- api-gateway '200 reassigned'
+        administrator <- web-app 'task reassigned'
+
+        // async, after the operator already got a response
+        event-bus.task-status-updated-topic -> processing-service 'TaskReassigned'
+        processing-service -> application-db 'update assignment projection for the task app'
+    }
+}
+
+views 'Infrastructure' {
+
+    view event-bus-view of event-bus {
+        title 'Kafka event bus and its topics'
+        include *, event-bus.*
+    }
+
+    view legacy-event-bus-view of legacy-event-bus {
+        title 'Azure Event Hubs (legacy)'
+        include *, legacy-event-bus.*
+        style legacy-event-bus {
+            opacity 40%
+        }
+    }
+}

@@ -1,6 +1,0 @@
-model {
-    consumer-service = service 'Consumer Service' {
-    }
-
-    consumer-service .consumes kafka.user-created-topic
-}

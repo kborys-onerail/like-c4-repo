@@ -1,0 +1,14 @@
+model {
+    auth-service = dotnet-service 'Auth Service' {
+        description '''
+          Owns authentication and the user directory: login, tokens,
+          create or update customer, field-user, and administrator accounts,
+          publish user lifecycle events.
+        '''
+    }
+
+    auth-service .writes-to application-db 'users, roles, credentials'
+    auth-service .reads-from application-db 'lookup user for login and token checks'
+    auth-service .produces event-bus.user-created-topic
+    auth-service .produces event-bus.user-updated-topic
+}

@@ -1,0 +1,88 @@
+// Element kinds. Technology is declared on the kind, so every element
+// of that kind inherits the icon and the technology label.
+specification {
+    element actor {
+        style {
+            icon bootstrap:person
+            color slate
+        }
+    }
+
+    element service {
+    }
+
+    element dotnet-service {
+        technology '.NET'
+        style {
+            shape rectangle
+            icon tech:dotnet
+        }
+    }
+
+    element node-service {
+        technology 'Node.js'
+        style {
+            shape rectangle
+            icon tech:nodejs
+        }
+    }
+
+    element spa {
+        technology 'React'
+        style {
+            shape browser
+            icon tech:react
+        }
+    }
+
+    element mobile-client {
+        technology 'React Native'
+        style {
+            shape mobile
+            icon tech:react
+        }
+    }
+
+    element kafka {
+        #infra
+        technology 'Apache Kafka'
+        style {
+            shape rectangle
+            icon tech:kafka
+        }
+    }
+
+    element kafka-topic {
+        #infra
+        technology 'Kafka topic'
+        style {
+            shape queue
+            icon tech:kafka
+        }
+    }
+
+    element event-hub {
+        #azure #infra
+        technology 'Azure Event Hubs'
+        style {
+            shape rectangle
+            icon azure:event-hubs
+        }
+    }
+
+    element event-hub-topic {
+        #azure #infra
+        technology 'Azure Event Hubs'
+        style {
+            shape queue
+            icon azure:event-hubs
+        }
+    }
+
+    element database {
+        #infra
+        style {
+            shape storage
+        }
+    }
+}

@@ -1,0 +1,10 @@
+model {
+    web-app = spa 'Web Application' {
+        description '''
+          Browser application for customers and administrators
+          to manage requests, accounts, and exceptions.
+        '''
+    }
+
+    web-app .http api-gateway 'REST: login, users, requests, progress, exceptions'
+}

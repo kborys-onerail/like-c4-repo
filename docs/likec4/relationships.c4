@@ -1,0 +1,33 @@
+// Reusable relationship kinds
+specification {
+    relationship produces {
+        title 'produces to'
+        color amber
+    }
+
+    relationship consumes {
+        title 'consumes from'
+        color green
+    }
+
+    relationship http {
+        title 'communicates via HTTP with'
+        line dotted
+        color red
+    }
+
+    relationship writes-to {
+        title 'writes to'
+        color blue
+    }
+
+    relationship reads-from {
+        title 'reads from'
+        color slate
+    }
+
+    relationship uses {
+        title 'uses'
+        color indigo
+    }
+}

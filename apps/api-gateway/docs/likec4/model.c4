@@ -1,0 +1,17 @@
+model {
+    api-gateway = service 'API Gateway' {
+        technology 'NGINX'
+        description '''
+          Edge reverse proxy. Terminates TLS, routes authentication and
+          user traffic to Auth Service, and application traffic to Work Service.
+          It does not own business data.
+        '''
+        style {
+            shape rectangle
+            icon tech:nginx
+        }
+    }
+
+    api-gateway .http auth-service 'login, tokens, user directory'
+    api-gateway .http work-service 'requests, assignments, status'
+}

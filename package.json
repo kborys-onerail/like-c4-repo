@@ -1,12 +1,13 @@
 {
-  "name": "like-c4-repo",
+  "name": "architecture-as-code",
   "version": "0.0.0",
+  "description": "Version-controlled software architecture modeled with LikeC4",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "likec4 start .",
     "validate": "likec4 validate .",
-    "build": "likec4 build --use-hash-history -o dist"
+    "build": "likec4 build . --use-hash-history -o dist"
   },
   "devDependencies": {
     "likec4": "^1.34.1"

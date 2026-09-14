@@ -1,0 +1,10 @@
+model {
+    task-app = mobile-client 'Task Application' {
+        description '''
+          Mobile application for field users to review assigned tasks,
+          report progress, and attach completion evidence.
+        '''
+    }
+
+    task-app .http api-gateway 'REST: login, assignments, status, attachments'
+}

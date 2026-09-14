@@ -1,7 +1,0 @@
-model {
-    enricher-service = service 'Enricher Service' {
-    }
-
-    enricher-service .consumes kafka.user-created-topic
-    enricher-service .produces eventHub.user-created-topic
-}
