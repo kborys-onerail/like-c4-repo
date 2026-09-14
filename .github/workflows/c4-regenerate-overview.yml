@@ -1,0 +1,62 @@
+name: Regenerate Architecture Overview
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**/*.c4'
+      - 'likec4.config.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/c4-regenerate-overview.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: c4-regenerate-overview
+  cancel-in-progress: false
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.3
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate architecture
+        run: npm run validate
+
+      # PNG export renders views in a headless browser; Playwright ships with
+      # likec4, but the browser binary has to be downloaded.
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+
+      # No output directory, so every image is written next to the .c4 file
+      # declaring the view, which keeps an application's overview inside that
+      # application's folder.
+      - name: Export overviews to PNG
+        run: npx likec4 export png --filter index --filter "*-overview" .
+
+      - name: Commit changed overviews
+        run: |
+          git add -- docs/likec4/index.png
+          if git diff --cached --quiet; then
+            echo 'Overviews are up to date, nothing to commit.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'docs: regenerate architecture overviews'
+          git push
