@@ -1,0 +1,10 @@
+// architecture elements, hierarchies, compositions and relationships
+model {
+    kafka = kafka 'Kafka on Confluent Cloud' {
+        description 'Shared cluster'
+
+        user-created-topic = kafka-topic 'user-created'
+        user-updated-topic = kafka-topic 'user-updated'
+        order-placed-topic = kafka-topic 'order-placed'
+    }
+}

@@ -1,0 +1,6 @@
+model {
+    spa = service 'SPA' {
+    }
+
+    spa .http enricher-service
+}

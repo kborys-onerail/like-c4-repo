@@ -1,0 +1,9 @@
+// architecture elements, hierarchies, compositions and relationships
+model {
+    eventHub = eventHub 'Event Hub' {
+        #deprecated
+        description 'Shared cluster'
+
+        user-created-topic = eventHub-topic 'user-created-enriched'
+    }
+}

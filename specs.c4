@@ -1,0 +1,74 @@
+// defines element kinds to be used in the model, like system, app, microservice…
+specification {
+    element service {
+    }
+
+
+    element queue {
+        #infra
+        style {
+            shape queue
+        }
+    }
+
+    element kafka {
+        #infra
+        style {
+            shape rectangle
+            icon tech:kafka
+        }
+    }
+
+    element kafka-topic {
+        #infra
+        style {
+            shape queue
+            icon tech:kafka
+        }
+    }
+
+    element eventHub {
+        #azure #infra
+        style {
+            shape rectangle
+            icon azure:event-hubs
+        }
+    }
+
+    element eventHub-topic {
+        #infra
+        style {
+            shape queue
+            icon azure:event-hubs
+        }
+    }
+
+    element database {
+        #infra
+        style {
+            shape storage
+        }
+    }
+
+    relationship produces {
+        title 'produces to'
+        color amber
+    }
+
+    relationship consumes {
+        title 'consumes from'
+        color green
+    }
+
+    relationship http {
+        title 'communicates via HTTP with'
+        line dotted
+        color red
+    }
+
+    tag infra
+    tag azure
+    tag on-premise
+    tag team1
+    tag deprecated
+}

@@ -1,0 +1,6 @@
+model {
+    producer-service = service 'Producer Service' {
+    }
+
+    producer-service .produces kafka.user-created-topic
+}
