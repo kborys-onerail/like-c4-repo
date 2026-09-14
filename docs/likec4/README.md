@@ -68,24 +68,28 @@ npx playwright install chromium
 Then export the views that READMEs embed:
 
 ```sh
-npx likec4 export png --filter index --filter "*-overview"
+npx likec4 export png --filter index
 ```
 
 With no `-o` given, each image is written next to the `.c4` file that declares
-the view, so `index` becomes `docs/likec4/index.png`, and an application's own
-overview stays in that application's folder. Pass `-o <dir>`, optionally with
-`--flat`, to collect the images somewhere else instead.
+the view, so `index` becomes `docs/likec4/index.png`. Pass `-o <dir>`, optionally
+with `--flat`, to collect the images somewhere else instead. An application's
+own overview would use `--filter <app>-overview` and land next to that app's
+model file.
 
-`--filter "*-overview"` is combined with `index` using OR. It is a no-op until
-those views exist; it does not fail the export.
+Linux CI and a local Windows export will not produce byte-identical PNGs
+(fonts, DPI, antialiasing). Treat the file committed from CI as the README
+copy; GitHub Pages is the source of truth for the live model.
 
 ## CI
 
-- `c4-pages` builds the interactive site and deploys it to GitHub Pages.
-- `c4-regenerate-overview` runs the PNG export on every push to `main` that
-  touches the model, and commits the images when they differ. Pushes made with
-  `GITHUB_TOKEN` do not retrigger workflows, so this cannot loop.
+- `c4-pages` builds the interactive site, then deploys that artifact to GitHub
+  Pages. It is the live architecture.
+- `c4-regenerate-overview` exports `docs/likec4/index.png` on every push to
+  `main` that touches the model, and commits it only when the file differs.
+  The push uses `GITHUB_TOKEN`, which does not retrigger workflows, so this
+  cannot loop. A concurrent push to `main` is retried with rebase.
 
-Diagrams are generated artifacts. A forgotten local export is fine: the
-regenerate workflow will catch up on `main`. A pull request still shows the
-previous PNG until that commit lands.
+The PNG on the root README is a snapshot for GitHub's markdown renderer, not
+the model. A pull request still shows the previous PNG until the regenerate
+commit lands on `main`.

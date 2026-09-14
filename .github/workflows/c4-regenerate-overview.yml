@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - '**/*.c4'
+      - '**/docs/likec4/**'
       - 'likec4.config.json'
       - 'package.json'
       - 'package-lock.json'
@@ -21,10 +22,13 @@ concurrency:
 
 jobs:
   regenerate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -38,25 +42,41 @@ jobs:
       - name: Validate architecture
         run: npm run validate
 
-      # PNG export renders views in a headless browser; Playwright ships with
-      # likec4, but the browser binary has to be downloaded.
+      - name: Resolve Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('playwright-core/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      # PNG export renders views in a headless browser. Playwright ships with
+      # likec4; this step installs Chromium (or reuses the cache) and OS deps.
       - name: Install Chromium for Playwright
         run: npx playwright install --with-deps chromium
 
-      # No output directory, so every image is written next to the .c4 file
-      # declaring the view, which keeps an application's overview inside that
-      # application's folder.
-      - name: Export overviews to PNG
-        run: npx likec4 export png --filter index --filter "*-overview" .
+      - name: Export landscape PNG
+        run: npx likec4 export png --filter index .
 
-      - name: Commit changed overviews
+      - name: Commit landscape PNG if it changed
         run: |
-          git add -- docs/likec4/index.png
-          if git diff --cached --quiet; then
-            echo 'Overviews are up to date, nothing to commit.'
-            exit 0
-          fi
+          set -u
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- docs/likec4/index.png
+          if git diff --cached --quiet; then
+            echo 'Landscape PNG is up to date, nothing to commit.'
+            exit 0
+          fi
           git commit -m 'docs: regenerate architecture overviews'
-          git push
+          for attempt in 1 2 3; do
+            if git pull --rebase origin "${GITHUB_REF_NAME}" && git push; then
+              exit 0
+            fi
+            echo "Push attempt ${attempt} failed, retrying..."
+            sleep 5
+          done
+          echo 'Failed to push the regenerated PNG after 3 attempts.'
+          exit 1
